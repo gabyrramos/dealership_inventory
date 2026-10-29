@@ -188,7 +188,7 @@ function EditForm({
           <AlertDescription>
             <p>
               {conflict.updatedBy} saved changes while you were editing (now version {conflict.version}). Your edit was
-              not saved, so nothing was overwritten. Refresh to load the latest values, then make your change again.
+              not saved, refresh to load the latest values then make your changes again.
             </p>
             <Button variant="outline" size="sm" className="mt-2" onClick={onRefresh} disabled={refreshing}>
               <RefreshCw className={refreshing ? "animate-spin" : ""} />
