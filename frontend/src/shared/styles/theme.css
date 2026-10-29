@@ -1,0 +1,93 @@
+@import url("https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,200..1000;1,200..1000&display=swap");
+@import "tailwindcss";
+
+:root {
+  --background: hsl(229 55.25% 104.88%);
+  --foreground: hsl(229 8.5% 8.05%);
+
+  --muted: hsl(229 42.5% 90%);
+  --muted-foreground: hsl(229 8.5% 43%);
+
+  --popover: hsl(229 8% 100%);
+  --popover-foreground: hsl(229 8.5% 8.05%);
+
+  --card: hsl(229 48% 100%);
+  --card-foreground: hsl(229 8.5% 8.05%);
+
+  --input: hsl(209 40% 78%);
+
+  --primary: hsl(188 96% 33%);
+  --primary-foreground: hsl(0 100% 100%);
+
+  --secondary: hsl(229 12.5% 94.3%);
+  --secondary-foreground: hsl(229 8.5% 8.05%);
+
+  --accent: hsl(229 42.5% 98.3%);
+  --accent-foreground: hsl(229 8.5% 8.05%);
+
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(229 8.5% 98.05%);
+
+  --radius: 0.5rem;
+  --border: hsl(214.3 31.8% 91.4%);
+  --ring: hsl(209 40% 78%);
+}
+
+@theme inline {
+  --spacing: 0.25rem;
+  --font-mulish: "Mulish", sans-serif;
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+}
+
+@layer base {
+  html {
+    @apply font-mulish;
+  }
+
+  body {
+    @apply text-sm bg-background text-foreground;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #d6e2ec;
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #cdd9e2;
+  }
+}

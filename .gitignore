@@ -1,0 +1,10 @@
+node_modules
+.wrangler
+dist
+coverage
+.react-router
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store

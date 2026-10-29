@@ -1,0 +1,7 @@
+{
+  "name": "dealership-inventory-test",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-01",
+  "d1_databases": [{ "binding": "DB", "database_name": "dealership-db-test", "database_id": "test-db-id" }],
+  "vars": { "SESSION_TTL_SECONDS": "28800", "RELEASE": "test" }
+}

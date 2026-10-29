@@ -1,0 +1,194 @@
+name: CI/CD
+
+# PRs run the checks. Pushes to main run the same checks and deploy if they pass.
+# Needs a repository variable DEMO_PASSWORD (Settings > Secrets and variables > Actions > Variables).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  DEMO_PASSWORD: ${{ vars.DEMO_PASSWORD }}
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  # Cancel old PR runs, but never a deploy in progress.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    name: Backend (typecheck, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Check DEMO_PASSWORD is set
+        run: '[ -n "$DEMO_PASSWORD" ] || { echo "::error::Add a repository variable named DEMO_PASSWORD."; exit 1; }'
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Seed file is up to date
+        run: |
+          npm run db:seed:generate
+          git diff --exit-code -- db/seed/seed.sql || {
+            echo "::error::db/seed/seed.sql is stale. Run 'npm run db:seed:generate' in backend/ and commit the result."
+            exit 1
+          }
+
+      - name: Broken repository must fail the lost-update test
+        # If this passes, the regression test can no longer catch the bug.
+        run: |
+          if npm run test:defect; then
+            echo "::error::The broken repository passed the lost-update test, so the test isn't catching the bug anymore."
+            exit 1
+          fi
+          echo "Broken repository failed as expected."
+
+  frontend:
+    name: Frontend (lint, typecheck, tests, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      VITE_DEMO_PASSWORD: ${{ vars.DEMO_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      # The tests above need VITE_DEMO_PASSWORD, but the build that gets deployed must not have it:
+      # every VITE_ variable is copied into the public JavaScript. Empty means no demo accounts box.
+      - name: Build
+        run: npm run build
+        env:
+          VITE_DEMO_PASSWORD: ""
+
+      - name: Demo password must not be in the build
+        run: |
+          if grep -rqF -- "$DEMO_PASSWORD" dist/client; then
+            echo "::error::The demo password is inside the frontend build."
+            exit 1
+          fi
+
+      # Deploy uses this exact build instead of building again.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/client
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Cloudflare
+    # Skipped unless both check jobs pass.
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Check Cloudflare secrets are set
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+          [ -n "$CLOUDFLARE_API_TOKEN" ]  || fail "Repository secret CLOUDFLARE_API_TOKEN is not set."
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || fail "Repository secret CLOUDFLARE_ACCOUNT_ID is not set."
+
+      - name: Download the frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/client
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      # Runs before the new code goes live, and only applies new files. Keep migrations
+      # backward compatible so a rollback still works against the new schema.
+      - name: Apply D1 migrations
+        working-directory: backend
+        run: npx wrangler d1 migrations apply DB --remote
+
+      - name: Deploy Worker and static assets
+        id: deploy
+        working-directory: backend
+        env:
+          APP_URL_OVERRIDE: ${{ vars.APP_URL }}
+        run: |
+          npx wrangler deploy --var RELEASE:${{ github.sha }} 2>&1 | tee "$RUNNER_TEMP/deploy.log"
+          parsed=$(grep -oE 'https://[A-Za-z0-9._-]+\.workers\.dev' "$RUNNER_TEMP/deploy.log" | head -1 || true)
+          url="${APP_URL_OVERRIDE:-$parsed}"
+          [ -n "$url" ] || { echo "::error::Could not determine the deployed URL. Set the repository variable APP_URL."; exit 1; }
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "### Deployed ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "$url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Wait for the new release
+        env:
+          BASE_URL: ${{ steps.deploy.outputs.url }}
+          EXPECT_RELEASE: ${{ github.sha }}
+        run: node devops/scripts/wait-for-release.mjs
+
+      - name: Smoke test the deployed app
+        env:
+          BASE_URL: ${{ steps.deploy.outputs.url }}
+          EXPECT_RELEASE: ${{ github.sha }}
+        run: node devops/scripts/smoke-test.mjs
+
+      - name: Rollback instructions
+        if: failure()
+        run: |
+          {
+            echo "### Release failed verification"
+            echo "The new version is live but failed the health check or smoke test."
+            echo "Run the Rollback workflow, or locally: \`cd backend && npx wrangler rollback\`."
+            echo "A rollback doesn't undo database migrations."
+          } >> "$GITHUB_STEP_SUMMARY"

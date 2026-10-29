@@ -1,0 +1,37 @@
+{
+  "name": "dealership-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "predev": "node scripts/ensure-assets-dir.mjs",
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:defect": "vitest run --config vitest.defect.config.ts",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:seed:generate": "tsx --env-file-if-exists=.env scripts/generate-seed.ts",
+    "db:seed:local": "wrangler d1 execute DB --local --file=db/seed/seed.sql",
+    "db:seed:remote": "wrangler d1 execute DB --remote --file=db/seed/seed.sql",
+    "db:reset:local": "npm run db:migrate:local && npm run db:seed:local",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.13.14",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.9",
+    "@cloudflare/workers-types": "^5.20261027.1",
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.12",
+    "wrangler": "^4.154.0"
+  }
+}

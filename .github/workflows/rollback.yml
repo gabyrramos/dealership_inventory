@@ -1,0 +1,51 @@
+name: Rollback
+
+# Manual. Switches back to an earlier Worker version (API and frontend together).
+# Doesn't touch the database.
+on:
+  workflow_dispatch:
+    inputs:
+      version_id:
+        description: "Version id to roll back to. Leave empty for the previous one."
+        required: false
+        default: ""
+      reason:
+        description: "Why are you rolling back?"
+        required: true
+        default: "Rollback requested from GitHub Actions"
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+
+      - name: List recent versions
+        run: npx wrangler versions list
+
+      - name: Roll back
+        env:
+          VERSION_ID: ${{ inputs.version_id }}
+          REASON: ${{ inputs.reason }}
+        run: npx wrangler rollback $VERSION_ID --message "$REASON" --yes
+
+      - name: Current deployment
+        run: npx wrangler deployments list
