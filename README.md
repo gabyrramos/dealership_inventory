@@ -1,6 +1,6 @@
 # Dealership Inventory
 
-I created a small inventory app for two dealerships with different accounts according to the role needed. Each user belongs to one dealership and is either an admin (can edit vehicles) or a viewer (read-only). If two admins edit the same vehicle at the same time, the second save is rejected instead of silently overwriting the first which is the main problem to target.
+I created a small inventory app for two dealerships with different accounts according to the role needed for this test. Each user belongs to one dealership and is either an admin (can edit vehicles) or a viewer (read-only). If two admins edit the same vehicle at the same time, the second save is rejected instead of silently overwriting the first which is the main problem to target.
 
 - Live app: https://dealership-inventory.gabyr-contact.workers.dev
 - Repo: https://github.com/gabyrramos/dealership_inventory
