@@ -43,7 +43,7 @@ npm ci
 npm run db:reset:local
 npm run dev
 
-# 3. Frontend on :5005, It proxies /api to the backend.
+# 3. Frontend on :5005 (second terminal). It proxies /api to the backend.
 cd frontend
 npm ci
 npm run dev
@@ -59,9 +59,9 @@ Then open http://localhost:5005. Both `.npmrc` files set `legacy-peer-deps=true`
 |---|---|---|
 | `DEMO_PASSWORD` | `backend/.env` | Password for the demo accounts. Used to build the seed and by the tests. |
 | `PBKDF2_ITERATIONS` | `backend/.env` | Hash cost used when building the seed (default 20000). |
-| `SESSION_TTL_SECONDS` | `backend/.env` locally, `wrangler.jsonc` in prod | Duration of a session lasts by default 8 hours. |
+| `SESSION_TTL_SECONDS` | `backend/.env` locally, `wrangler.jsonc` in prod | How long a session lasts (default 8 hours). |
 | `RELEASE` | `backend/.env` locally, set by CI in prod | Git SHA reported by `/api/health`. |
-| `VITE_DEMO_PASSWORD` | `frontend/.env` | It's the same as demo_password |
+| `VITE_DEMO_PASSWORD` | `frontend/.env` | Same value as `DEMO_PASSWORD`. The tests need it. Anything starting with `VITE_` ends up in the browser bundle, so CI builds the deployed frontend with it empty and production has no demo accounts box. |
 | `DEV_PORT`, `API_URL` | `frontend/.env` | Vite dev server port and where to proxy `/api`. |
 
 In GitHub (Settings > Secrets and variables > Actions):
@@ -70,7 +70,7 @@ In GitHub (Settings > Secrets and variables > Actions):
 |---|---|---|
 | `DEMO_PASSWORD` | variable | Same value as above. CI needs it for the tests, the seed check and the smoke test. It is not put in the deployed frontend build. |
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | secrets | For deploying. |
-| `APP_URL` | variable, optional  |
+| `APP_URL` | variable, optional | Use this if CI can't work out the deployed URL from wrangler's output. |
 
 ## Tests and checks
 
