@@ -96,7 +96,7 @@ Each dealership has 4 vehicles (`veh_sunrise_001` to `004`, `veh_lakeside_001` t
 
 ## Trying the edit conflict
 
-In the browser: sign in as `admin1@sunrise.test` in a normal window and as `admin2@sunrise.test` in a private window. To test saving edits for a same vechile open the same vehicle in both. Save your changes in the first window, then save different changes in the second. The second window shows "Someone else updated this vehicle", it also disables Save, and offers a button to load the latest values.
+In the browser: sign in as `admin1@sunrise.test` in a normal window and as `admin2@sunrise.test` in a private window. To test saving edits for a same vehicle open the same vehicle in both. Save your changes in the first window, then save different changes in the second. The second window shows "Someone else updated this vehicle", it also disables Save, and offers a button to load the latest values.
 
 With curl:
 
